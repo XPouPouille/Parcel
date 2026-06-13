@@ -586,6 +586,14 @@ body {
   min-width: 180px;
 }
 
+.postal-code-wrapper {
+  flex: 0 0 160px;
+}
+
+.postal-code-wrapper .input {
+  width: 100%;
+}
+
 .carrier-select {
   width: 100%;
   cursor: pointer;

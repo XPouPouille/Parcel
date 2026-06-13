@@ -4,8 +4,10 @@ Application de suivi de colis multi-transporteurs, auto-hébergée, avec notific
 
 **Fonctionnalités :**
 - Ajout d'un numéro de suivi → détection automatique du transporteur
+- Sélection manuelle du transporteur dans une liste
+- Code postal obligatoire pour Mondial Relay
 - Onglet **En cours** / onglet **Terminé**
-- Vérification automatique toutes les heures
+- Vérification automatique configurable (par défaut toutes les heures)
 - Notifications Telegram à chaque changement de statut
 - Intégration Traefik (HTTPS automatique via Let's Encrypt)
 - Thème clair / sombre
@@ -15,10 +17,26 @@ Application de suivi de colis multi-transporteurs, auto-hébergée, avec notific
 ## Prérequis
 
 - Docker + Docker Compose installés
-- Traefik déployé avec le réseau externe `traefik_proxy`
+- Traefik déployé avec le réseau externe `frontend`
 - Un nom de domaine pointant vers votre serveur
-- Clé API [17track](https://www.17track.net/en/api) (gratuit, 100 suivis/mois)
-- Un bot Telegram (créé via [@BotFather](https://t.me/BotFather))
+- Un bot Telegram créé via [@BotFather](https://t.me/BotFather)
+
+---
+
+## Transporteurs supportés
+
+| Transporteur | Intégration | Clé requise |
+|---|---|---|
+| La Poste / Colissimo / Chronopost | API officielle | `LAPOSTE_API_KEY` — gratuit sur [developer.laposte.fr](https://developer.laposte.fr) |
+| DHL + Deutsche Post | API officielle | `DHL_API_KEY` — gratuit sur [developer.dhl.com](https://developer.dhl.com) |
+| UPS | API OAuth2 | `UPS_CLIENT_ID` + `UPS_CLIENT_SECRET` — gratuit sur [developer.ups.com](https://developer.ups.com) |
+| FedEx + TNT | API OAuth2 | `FEDEX_CLIENT_ID` + `FEDEX_CLIENT_SECRET` — gratuit sur [developer.fedex.com](https://developer.fedex.com) |
+| USPS | API Web Tools | `USPS_USER_ID` — gratuit sur [registration.shippingapis.com](https://registration.shippingapis.com) |
+| PostNL | API officielle | `POSTNL_API_KEY` — gratuit sur [developer.postnl.nl](https://developer.postnl.nl) |
+| GLS | Endpoint public | Aucune clé |
+| DPD | Endpoint public | Aucune clé |
+| Mondial Relay | Endpoint interne | Aucune clé *(code postal destinataire requis)* |
+| Colis Privé, Royal Mail, Hermes… | Lien vers site officiel | — |
 
 ---
 
@@ -27,18 +45,18 @@ Application de suivi de colis multi-transporteurs, auto-hébergée, avec notific
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/XPouPouille/Parcel.git
+sudo git clone https://github.com/XPouPouille/Parcel.git
 cd Parcel
 ```
 
 ### 2. Créer et remplir le fichier `.env`
 
 ```bash
-cp .env.example .env
-nano .env
+sudo cp .env.example .env
+sudo nano .env
 ```
 
-Renseigner les variables :
+Variables à renseigner :
 
 ```env
 # Domaine Traefik (sans https://)
@@ -49,18 +67,19 @@ APP_URL=https://parcel.votre-domaine.com
 
 PORT=3000
 
-# Clé API 17track — https://www.17track.net/en/api
-TRACK17_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# Bot Telegram — créé via @BotFather
+# ── Telegram ──────────────────────────────────────────
 TELEGRAM_BOT_TOKEN=123456789:ABCDefGhIJKlmNoPQRsTUVwxyZ
-
-# ID du chat Telegram qui reçoit les notifications
-# → Démarrer le bot, envoyer /start, l'ID s'affiche
 TELEGRAM_CHAT_ID=123456789
 
-# Intervalle de vérification en minutes (défaut: 60)
-CHECK_INTERVAL_MINUTES=60
+# ── APIs transporteurs (laisser vide = désactivé) ─────
+LAPOSTE_API_KEY=
+DHL_API_KEY=
+UPS_CLIENT_ID=
+UPS_CLIENT_SECRET=
+FEDEX_CLIENT_ID=
+FEDEX_CLIENT_SECRET=
+USPS_USER_ID=
+POSTNL_API_KEY=
 ```
 
 #### Obtenir le `TELEGRAM_CHAT_ID`
@@ -68,12 +87,15 @@ CHECK_INTERVAL_MINUTES=60
 1. Déployer le stack une première fois
 2. Ouvrir Telegram, chercher votre bot et envoyer `/start`
 3. Le bot répond avec l'ID de votre chat
-4. Renseigner cet ID dans `.env`, puis redémarrer le stack
+4. Renseigner cet ID dans `.env`, puis redémarrer :
+   ```bash
+   sudo docker compose -p Parcel restart
+   ```
 
 ### 3. Déployer le stack "Parcel"
 
 ```bash
-docker compose -p Parcel up -d --build
+sudo docker compose -p Parcel up -d --build
 ```
 
 L'application est accessible sur `https://parcel.votre-domaine.com`.
@@ -84,13 +106,13 @@ L'application est accessible sur `https://parcel.votre-domaine.com`.
 
 ```bash
 # Récupérer la dernière version
-git pull
+sudo git pull
 
 # Reconstruire et redémarrer le stack
-docker compose -p Parcel up -d --build
+sudo docker compose -p Parcel up -d --build
 
 # (optionnel) Supprimer les images inutilisées
-docker image prune -f
+sudo docker image prune -f
 ```
 
 ---
@@ -99,16 +121,19 @@ docker image prune -f
 
 ```bash
 # Voir les logs en temps réel
-docker logs -f parcel-tracker
+sudo docker logs -f parcel-tracker
 
 # Arrêter le stack
-docker compose -p Parcel down
+sudo docker compose -p Parcel down
 
 # Arrêter et supprimer les données (⚠ irréversible)
-docker compose -p Parcel down -v
+sudo docker compose -p Parcel down -v
 
 # Redémarrer sans rebuild
-docker compose -p Parcel restart
+sudo docker compose -p Parcel restart
+
+# Vérifier l'état du container
+sudo docker ps | grep parcel
 ```
 
 ---
@@ -118,12 +143,15 @@ docker compose -p Parcel restart
 | Méthode | Route | Description |
 |---|---|---|
 | `GET` | `/api/packages` | Liste tous les colis |
-| `POST` | `/api/packages` | Ajouter un colis `{ tracking_number, label? }` |
+| `POST` | `/api/packages` | Ajouter un colis `{ tracking_number, label?, carrier_code?, postal_code? }` |
 | `GET` | `/api/packages/:id` | Détail d'un colis |
 | `PATCH` | `/api/packages/:id` | Modifier le libellé `{ label }` |
 | `POST` | `/api/packages/:id/refresh` | Forcer la mise à jour d'un colis |
 | `POST` | `/api/refresh` | Forcer la mise à jour de tous les colis |
 | `DELETE` | `/api/packages/:id` | Supprimer un colis |
+| `GET` | `/api/carriers` | Liste des transporteurs et état de configuration |
+| `GET` | `/api/config` | Configuration actuelle (intervalle de vérification) |
+| `PUT` | `/api/config` | Modifier la configuration `{ check_interval_minutes }` |
 | `GET` | `/api/status` | Statistiques et état du service |
 
 ---
@@ -132,15 +160,9 @@ docker compose -p Parcel restart
 
 | Commande | Description |
 |---|---|
-| `/start` | Affiche l'ID du chat (utile pour configurer `TELEGRAM_CHAT_ID`) |
+| `/start` | Affiche l'ID du chat (pour configurer `TELEGRAM_CHAT_ID`) |
 | `/colis` | Liste les colis en cours avec leur statut |
 | `/aide` | Affiche l'aide |
-
----
-
-## Transporteurs supportés
-
-Via l'API 17track : La Poste, Colissimo, Chronopost, Mondial Relay, DHL, UPS, FedEx, GLS, DPD, TNT, Amazon Logistics et des centaines d'autres transporteurs internationaux.
 
 ---
 
@@ -153,11 +175,23 @@ Parcel/
 ├── .env.example
 ├── package.json
 ├── src/
-│   ├── server.js       ← API Express
-│   ├── database.js     ← SQLite
-│   ├── tracker.js      ← Intégration 17track
-│   ├── telegram.js     ← Bot Telegram
-│   └── scheduler.js    ← Vérification horaire
+│   ├── server.js          ← API Express
+│   ├── database.js        ← SQLite
+│   ├── tracker.js         ← Routeur transporteurs
+│   ├── telegram.js        ← Bot Telegram
+│   ├── scheduler.js       ← Vérification automatique
+│   └── carriers/
+│       ├── index.js       ← Détection auto + routing
+│       ├── laposte.js     ← La Poste / Colissimo / Chronopost
+│       ├── dhl.js         ← DHL / Deutsche Post
+│       ├── ups.js         ← UPS
+│       ├── fedex.js       ← FedEx / TNT
+│       ├── usps.js        ← USPS
+│       ├── postnl.js      ← PostNL
+│       ├── gls.js         ← GLS (sans clé)
+│       ├── dpd.js         ← DPD (sans clé)
+│       ├── mondialrelay.js← Mondial Relay (code postal requis)
+│       └── generic.js     ← Autres (lien officiel)
 └── public/
     ├── index.html
     ├── css/style.css

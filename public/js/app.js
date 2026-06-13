@@ -34,6 +34,8 @@
   const carrierManualBtn     = document.getElementById('carrier-manual-btn');
   const carrierSelectWrapper = document.getElementById('carrier-select-wrapper');
   const carrierSelect        = document.getElementById('carrier-select');
+  const postalCodeWrapper    = document.getElementById('postal-code-wrapper');
+  const postalCodeInput      = document.getElementById('postal-code-input');
   const configBtn       = document.getElementById('config-btn');
   const configModal     = document.getElementById('config-modal');
   const configModalClose= document.getElementById('config-modal-close');
@@ -245,11 +247,18 @@
     } catch (_) {}
   }
 
+  function onCarrierChange() {
+    const isMondialRelay = carrierSelect.value === 'mondialrelay';
+    postalCodeWrapper.classList.toggle('hidden', !isMondialRelay);
+    if (isMondialRelay) postalCodeInput.focus();
+  }
+
   carrierAutoBtn.addEventListener('click', () => {
     carrierMode = 'auto';
     carrierAutoBtn.classList.add('active');
     carrierManualBtn.classList.remove('active');
     carrierSelectWrapper.classList.add('hidden');
+    postalCodeWrapper.classList.add('hidden');
     carrierSelect.value = '';
   });
 
@@ -258,8 +267,11 @@
     carrierManualBtn.classList.add('active');
     carrierAutoBtn.classList.remove('active');
     carrierSelectWrapper.classList.remove('hidden');
+    onCarrierChange();
     carrierSelect.focus();
   });
+
+  carrierSelect.addEventListener('change', onCarrierChange);
 
   // ── Add package ────────────────────────────────────────
   addForm.addEventListener('submit', async (e) => {
@@ -275,10 +287,12 @@
     hideError();
     loadingOverlay.classList.remove('hidden');
 
+    const selectedCarrier = carrierMode === 'manual' ? carrierSelect.value : null;
     const body = {
       tracking_number: tracking,
       label: labelInput.value.trim(),
-      carrier_code: carrierMode === 'manual' ? carrierSelect.value : null,
+      carrier_code: selectedCarrier,
+      postal_code: selectedCarrier === 'mondialrelay' ? postalCodeInput.value.trim() : null,
     };
 
     try {
@@ -292,6 +306,8 @@
       trackingInput.value = '';
       labelInput.value = '';
       carrierSelect.value = '';
+      postalCodeInput.value = '';
+      postalCodeWrapper.classList.add('hidden');
 
       if (pkg._warning) {
         showError(`Colis ajouté mais tracking indisponible: ${pkg._warning}`);

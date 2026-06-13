@@ -63,7 +63,7 @@ function detectSlug(trackingNumber) {
 }
 
 // Route to the right carrier module
-async function track(trackingNumber, slug) {
+async function track(trackingNumber, slug, postalCode) {
   switch (slug) {
     case 'laposte':
     case 'colissimo':
@@ -94,7 +94,7 @@ async function track(trackingNumber, slug) {
       return dpd.track(trackingNumber);
 
     case 'mondialrelay':
-      return mondialrelay.track(trackingNumber);
+      return mondialrelay.track(trackingNumber, postalCode);
 
     default:
       return generic.track(trackingNumber, slug);

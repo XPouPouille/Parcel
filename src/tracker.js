@@ -16,7 +16,7 @@ const STATUS_LABELS = {
   expired:        'Expiré',
 };
 
-async function getTrackingInfo(trackingNumber, slugHint) {
+async function getTrackingInfo(trackingNumber, slugHint, postalCode) {
   const slug = slugHint || carriers.detectSlug(trackingNumber);
 
   if (!slug) {
@@ -31,7 +31,7 @@ async function getTrackingInfo(trackingNumber, slugHint) {
     };
   }
 
-  const result = await carriers.track(trackingNumber, slug);
+  const result = await carriers.track(trackingNumber, slug, postalCode);
 
   const carrierInfo = carriers.CARRIER_MAP[slug];
   return {
@@ -47,9 +47,8 @@ async function getTrackingInfo(trackingNumber, slugHint) {
   };
 }
 
-// addAndTrack: same as getTrackingInfo (no registration step needed without 17track)
-async function addAndTrack(trackingNumber, slugHint) {
-  return getTrackingInfo(trackingNumber, slugHint);
+async function addAndTrack(trackingNumber, slugHint, postalCode) {
+  return getTrackingInfo(trackingNumber, slugHint, postalCode);
 }
 
 module.exports = { getTrackingInfo, addAndTrack, CARRIERS };

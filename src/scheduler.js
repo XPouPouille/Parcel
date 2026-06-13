@@ -68,8 +68,7 @@ async function checkAllPackages(db) {
 }
 
 async function checkPackage(db, pkg) {
-  // Pass stored carrier_code so we don't re-detect each time
-  const info = await getTrackingInfo(pkg.tracking_number, pkg.carrier_code || null);
+  const info = await getTrackingInfo(pkg.tracking_number, pkg.carrier_code || null, pkg.postal_code || null);
   const oldStatus = pkg.status;
 
   if (info.status === oldStatus && info.last_event === pkg.last_event) {

@@ -54,13 +54,18 @@ app.get('/api/carriers', (req, res) => {
 
 // POST add package
 app.post('/api/packages', async (req, res) => {
-  const { tracking_number, label, carrier_code } = req.body;
+  const { tracking_number, label, carrier_code, postal_code } = req.body;
 
   if (!tracking_number?.trim()) {
     return res.status(400).json({ error: 'Numéro de suivi requis' });
   }
 
+  if (carrier_code === 'mondialrelay' && !postal_code?.trim()) {
+    return res.status(400).json({ error: 'Mondial Relay nécessite le code postal du destinataire' });
+  }
+
   const number = tracking_number.trim().toUpperCase();
+  const postalCode = postal_code?.trim() || null;
 
   // Check duplicate
   const existing = db.prepare('SELECT id FROM packages WHERE tracking_number = ?').get(number);
@@ -70,15 +75,15 @@ app.post('/api/packages', async (req, res) => {
 
   // Insert pending immediately so UI responds fast
   const insert = db.prepare(`
-    INSERT INTO packages (tracking_number, label, status)
-    VALUES (?, ?, 'pending')
+    INSERT INTO packages (tracking_number, label, postal_code, carrier_code, status)
+    VALUES (?, ?, ?, ?, 'pending')
   `);
-  const result = insert.run(number, label?.trim() || null);
+  const result = insert.run(number, label?.trim() || null, postalCode, carrier_code || null);
   const newId = result.lastInsertRowid;
 
   // Fetch tracking info async
   try {
-    const info = await addAndTrack(number, carrier_code || null);
+    const info = await addAndTrack(number, carrier_code || null, postalCode);
 
     db.prepare(`
       UPDATE packages SET

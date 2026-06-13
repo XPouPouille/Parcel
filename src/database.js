@@ -24,6 +24,7 @@ function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tracking_number TEXT NOT NULL UNIQUE,
       label TEXT,
+      postal_code TEXT,
       carrier TEXT,
       carrier_code TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
@@ -43,6 +44,12 @@ function initSchema() {
       value TEXT NOT NULL
     );
   `);
+
+  // Migration: add postal_code column if missing (existing installs)
+  const cols = db.prepare(`PRAGMA table_info(packages)`).all().map(c => c.name);
+  if (!cols.includes('postal_code')) {
+    db.exec(`ALTER TABLE packages ADD COLUMN postal_code TEXT`);
+  }
 
   // Seed default interval from env (only if not already set by user)
   const defaultInterval = process.env.CHECK_INTERVAL_MINUTES || '60';
