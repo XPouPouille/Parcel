@@ -28,8 +28,12 @@
   const modalDelete     = document.getElementById('modal-delete');
   const modalRefresh    = document.getElementById('modal-refresh');
   const loadingOverlay  = document.getElementById('loading-overlay');
-  const themeToggle     = document.getElementById('theme-toggle');
-  const refreshAllBtn   = document.getElementById('refresh-all-btn');
+  const themeToggle          = document.getElementById('theme-toggle');
+  const refreshAllBtn        = document.getElementById('refresh-all-btn');
+  const carrierAutoBtn       = document.getElementById('carrier-auto-btn');
+  const carrierManualBtn     = document.getElementById('carrier-manual-btn');
+  const carrierSelectWrapper = document.getElementById('carrier-select-wrapper');
+  const carrierSelect        = document.getElementById('carrier-select');
   const configBtn       = document.getElementById('config-btn');
   const configModal     = document.getElementById('config-modal');
   const configModalClose= document.getElementById('config-modal-close');
@@ -221,25 +225,68 @@
     modalRefresh.dataset.id = p.id;
   }
 
+  // ── Carrier toggle ─────────────────────────────────────
+  let carrierMode = 'auto'; // 'auto' | 'manual'
+
+  async function loadCarriers() {
+    try {
+      const carriers = await api('/api/carriers');
+      carriers.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.code;
+        opt.textContent = c.name;
+        carrierSelect.appendChild(opt);
+      });
+    } catch (_) {}
+  }
+
+  carrierAutoBtn.addEventListener('click', () => {
+    carrierMode = 'auto';
+    carrierAutoBtn.classList.add('active');
+    carrierManualBtn.classList.remove('active');
+    carrierSelectWrapper.classList.add('hidden');
+    carrierSelect.value = '';
+  });
+
+  carrierManualBtn.addEventListener('click', () => {
+    carrierMode = 'manual';
+    carrierManualBtn.classList.add('active');
+    carrierAutoBtn.classList.remove('active');
+    carrierSelectWrapper.classList.remove('hidden');
+    carrierSelect.focus();
+  });
+
   // ── Add package ────────────────────────────────────────
   addForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const tracking = trackingInput.value.trim();
     if (!tracking) return;
 
+    if (carrierMode === 'manual' && !carrierSelect.value) {
+      showError('Choisissez un transporteur dans la liste ou utilisez la détection automatique.');
+      return;
+    }
+
     hideError();
     loadingOverlay.classList.remove('hidden');
+
+    const body = {
+      tracking_number: tracking,
+      label: labelInput.value.trim(),
+      carrier_code: carrierMode === 'manual' ? carrierSelect.value : null,
+    };
 
     try {
       const pkg = await api('/api/packages', {
         method: 'POST',
-        body: JSON.stringify({ tracking_number: tracking, label: labelInput.value.trim() }),
+        body: JSON.stringify(body),
       });
 
       packages.unshift(pkg);
       render();
       trackingInput.value = '';
       labelInput.value = '';
+      carrierSelect.value = '';
 
       if (pkg._warning) {
         showError(`Colis ajouté mais tracking indisponible: ${pkg._warning}`);
@@ -476,5 +523,6 @@
 
   // ── Init ───────────────────────────────────────────────
   initTheme();
+  loadCarriers();
   loadPackages();
 })();

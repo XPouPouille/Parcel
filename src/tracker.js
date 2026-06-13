@@ -14,31 +14,49 @@ const STATUS_MAP = {
   50: { status: 'alert', label: 'Alerte' },
 };
 
-// Carrier code → display name
-const CARRIER_NAMES = {
-  100003: 'La Poste',
-  100006: 'UPS',
-  100011: 'FedEx',
-  100031: 'DHL',
-  100216: 'Colissimo',
-  100217: 'Chronopost',
-  100218: 'Mondial Relay',
-  100132: 'Amazon Logistics',
-  100058: 'GLS',
-  100256: 'DPD',
-  100233: 'TNT',
-};
+// Carrier code → display name (sorted alphabetically for the UI)
+const CARRIERS = [
+  { code: 100132, name: 'Amazon Logistics' },
+  { code: 100217, name: 'Chronopost' },
+  { code: 100216, name: 'Colissimo' },
+  { code: 100031, name: 'DHL' },
+  { code: 100256, name: 'DPD' },
+  { code: 100011, name: 'FedEx' },
+  { code: 100058, name: 'GLS' },
+  { code: 100003, name: 'La Poste' },
+  { code: 100218, name: 'Mondial Relay' },
+  { code: 100102, name: 'PostNL' },
+  { code: 100233, name: 'TNT' },
+  { code: 100006, name: 'UPS' },
+  { code: 100005, name: 'USPS' },
+  { code: 100014, name: 'DB Schenker' },
+  { code: 100077, name: 'Colis Privé' },
+  { code: 100034, name: 'Correos (Espagne)' },
+  { code: 100035, name: 'Poste Italiane' },
+  { code: 100045, name: 'Deutsche Post' },
+  { code: 100047, name: 'Swiss Post' },
+  { code: 100070, name: 'Royal Mail' },
+  { code: 100048, name: 'Hermes' },
+  { code: 100164, name: 'Cainiao' },
+  { code: 100680, name: 'GEODIS' },
+];
+
+const CARRIER_NAME_MAP = Object.fromEntries(CARRIERS.map(c => [c.code, c.name]));
 
 function getHeaders() {
   return { '17token': API_KEY, 'Content-Type': 'application/json' };
 }
 
-async function registerTracking(trackingNumber) {
+// carrierCode is optional — when provided, skips auto-detection
+async function registerTracking(trackingNumber, carrierCode) {
   if (!API_KEY) throw new Error('TRACK17_API_KEY non configuré');
+
+  const payload = { number: trackingNumber };
+  if (carrierCode) payload.carrier = parseInt(carrierCode, 10);
 
   const res = await axios.post(
     `${API_BASE}/register`,
-    [{ number: trackingNumber }],
+    [payload],
     { headers: getHeaders() }
   );
 
@@ -49,7 +67,7 @@ async function registerTracking(trackingNumber) {
   const rejected = data.data?.rejected?.[0];
 
   if (rejected) {
-    // Already registered is code 4030 — not an error
+    // Already registered (4030) — not an error
     if (rejected.error?.code === 4030) return { already_registered: true };
     throw new Error(`Tracking refusé: ${rejected.error?.message || 'inconnu'}`);
   }
@@ -77,7 +95,9 @@ async function getTrackingInfo(trackingNumber) {
   const statusInfo = STATUS_MAP[statusCode] || STATUS_MAP[0];
 
   const carrierCode = accepted.carrier;
-  const carrierName = CARRIER_NAMES[carrierCode] || trackInfo?.shipping_info?.carrier_name || `Transporteur ${carrierCode}`;
+  const carrierName = CARRIER_NAME_MAP[carrierCode]
+    || trackInfo?.shipping_info?.carrier_name
+    || `Transporteur ${carrierCode}`;
 
   const events = (trackInfo?.tracking?.providers?.[0]?.events || []).map(e => ({
     date: e.time_utc || e.time_iso,
@@ -99,11 +119,10 @@ async function getTrackingInfo(trackingNumber) {
   };
 }
 
-async function addAndTrack(trackingNumber) {
-  await registerTracking(trackingNumber);
-  // Small delay so 17track processes the registration
+async function addAndTrack(trackingNumber, carrierCode) {
+  await registerTracking(trackingNumber, carrierCode);
   await new Promise(r => setTimeout(r, 1500));
   return getTrackingInfo(trackingNumber);
 }
 
-module.exports = { registerTracking, getTrackingInfo, addAndTrack, STATUS_MAP };
+module.exports = { registerTracking, getTrackingInfo, addAndTrack, STATUS_MAP, CARRIERS };

@@ -33,6 +33,7 @@
     <!-- Add tracking form -->
     <section class="add-section">
       <form id="add-form" class="add-form">
+        <!-- Row 1 : numéro + libellé -->
         <div class="form-row">
           <input
             id="tracking-input"
@@ -48,11 +49,35 @@
             placeholder="Libellé (optionnel)"
             class="input input-label"
           />
+        </div>
+
+        <!-- Row 2 : choix du transporteur + bouton ajouter -->
+        <div class="form-row form-row-carrier">
+          <!-- Toggle auto / manuel -->
+          <div class="carrier-toggle">
+            <button type="button" id="carrier-auto-btn" class="carrier-toggle-btn active">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Détection auto
+            </button>
+            <button type="button" id="carrier-manual-btn" class="carrier-toggle-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              Je connais le transporteur
+            </button>
+          </div>
+
+          <!-- Dropdown transporteur (masqué par défaut) -->
+          <div id="carrier-select-wrapper" class="carrier-select-wrapper hidden">
+            <select id="carrier-select" class="input carrier-select">
+              <option value="">— Choisir un transporteur —</option>
+            </select>
+          </div>
+
           <button type="submit" class="btn btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Ajouter
           </button>
         </div>
+
         <div id="form-error" class="form-error hidden"></div>
       </form>
     </section>

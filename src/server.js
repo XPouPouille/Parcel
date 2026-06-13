@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { getDb, getSetting, setSetting } = require('./database');
-const { addAndTrack, getTrackingInfo } = require('./tracker');
+const { addAndTrack, getTrackingInfo, CARRIERS } = require('./tracker');
 const { initBot, notifyNew } = require('./telegram');
 const { startScheduler, reloadScheduler, checkAllPackages, getCurrentInterval } = require('./scheduler');
 
@@ -41,9 +41,14 @@ app.get('/api/packages/:id', (req, res) => {
   res.json({ ...pkg, events: JSON.parse(pkg.events || '[]') });
 });
 
+// GET carriers list
+app.get('/api/carriers', (req, res) => {
+  res.json(CARRIERS);
+});
+
 // POST add package
 app.post('/api/packages', async (req, res) => {
-  const { tracking_number, label } = req.body;
+  const { tracking_number, label, carrier_code } = req.body;
 
   if (!tracking_number?.trim()) {
     return res.status(400).json({ error: 'Numéro de suivi requis' });
@@ -67,7 +72,7 @@ app.post('/api/packages', async (req, res) => {
 
   // Fetch tracking info async
   try {
-    const info = await addAndTrack(number);
+    const info = await addAndTrack(number, carrier_code || null);
 
     db.prepare(`
       UPDATE packages SET
