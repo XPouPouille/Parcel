@@ -6,7 +6,7 @@ services:
     container_name: parcel-tracker
     restart: unless-stopped
     networks:
-      - traefik_proxy
+      - frontend
     env_file:
       - .env
     volumes:
@@ -17,7 +17,7 @@ services:
     labels:
       # ── Traefik ──────────────────────────────────────
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik_proxy"
+      - "traefik.docker.network=frontend"
 
       # Router HTTP → redirect HTTPS
       - "traefik.http.routers.parcel-http.rule=Host(`${APP_DOMAIN}`)"
@@ -42,5 +42,5 @@ volumes:
     driver: local
 
 networks:
-  traefik_proxy:
+  frontend:
     external: true
