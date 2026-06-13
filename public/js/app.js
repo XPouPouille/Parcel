@@ -53,7 +53,8 @@
     delivered:   { emoji: '✅', label: 'Livré',               cls: 'status-delivered' },
     alert:       { emoji: '🚨', label: 'Alerte',              cls: 'status-alert' },
     expired:     { emoji: '⏰', label: 'Expiré',              cls: 'status-expired' },
-    not_found:   { emoji: '❓', label: 'Introuvable',         cls: 'status-not_found' },
+    not_found:      { emoji: '❓', label: 'Introuvable',      cls: 'status-not_found' },
+    not_configured: { emoji: '⚙️', label: 'Non configuré',   cls: 'status-pending' },
   };
 
   function statusInfo(s) { return STATUS_CONFIG[s] || STATUS_CONFIG.pending; }
@@ -201,7 +202,10 @@
 
     const events = Array.isArray(p.events) ? p.events : [];
 
-    if (!events.length) {
+    const errorMsg = p._error || (p.status === 'not_configured' ? 'Intégration non configurée.' : null);
+    if (errorMsg) {
+      modalTimeline.innerHTML = `<div class="timeline-empty config-note">⚙️ ${escHtml(errorMsg)}</div>`;
+    } else if (!events.length) {
       modalTimeline.innerHTML = `<div class="timeline-empty">Aucun événement disponible pour le moment.</div>`;
     } else {
       modalTimeline.innerHTML = events.map((e, i) => {
@@ -234,7 +238,8 @@
       carriers.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.code;
-        opt.textContent = c.name;
+        opt.textContent = c.configured ? c.name : `${c.name} ⚠ (clé API manquante)`;
+        if (!c.configured) opt.style.color = 'var(--text-light)';
         carrierSelect.appendChild(opt);
       });
     } catch (_) {}

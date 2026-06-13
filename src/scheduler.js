@@ -49,7 +49,7 @@ async function checkAllPackages(db) {
 
   const packages = (db || dbRef).prepare(`
     SELECT * FROM packages
-    WHERE status NOT IN ('delivered', 'expired', 'not_found')
+    WHERE status NOT IN ('delivered', 'expired', 'not_found', 'not_configured')
     ORDER BY created_at ASC
   `).all();
 
@@ -68,7 +68,8 @@ async function checkAllPackages(db) {
 }
 
 async function checkPackage(db, pkg) {
-  const info = await getTrackingInfo(pkg.tracking_number);
+  // Pass stored carrier_code so we don't re-detect each time
+  const info = await getTrackingInfo(pkg.tracking_number, pkg.carrier_code || null);
   const oldStatus = pkg.status;
 
   if (info.status === oldStatus && info.last_event === pkg.last_event) {

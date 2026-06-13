@@ -41,9 +41,15 @@ app.get('/api/packages/:id', (req, res) => {
   res.json({ ...pkg, events: JSON.parse(pkg.events || '[]') });
 });
 
-// GET carriers list
+// GET carriers list (with configured status)
 app.get('/api/carriers', (req, res) => {
-  res.json(CARRIERS);
+  const list = CARRIERS.map(c => ({
+    code: c.code,
+    name: c.name,
+    configured: !c.needs_key || !!process.env[c.needs_key],
+    needs_key: c.needs_key || null,
+  }));
+  res.json(list);
 });
 
 // POST add package

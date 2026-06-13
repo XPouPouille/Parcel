@@ -501,6 +501,17 @@ body {
   font-size: 14px;
 }
 
+.config-note {
+  background: rgba(255,159,10,0.08);
+  border: 1px solid rgba(255,159,10,0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  text-align: left;
+  line-height: 1.5;
+  font-size: 13px;
+  color: var(--text);
+}
+
 /* ── Loading overlay ── */
 .loading-overlay {
   position: fixed;
