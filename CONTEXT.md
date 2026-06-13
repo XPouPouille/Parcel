@@ -150,7 +150,7 @@ async function track(trackingNumber, postalCode?) {
 | `postnl` | postnl.js | API `api.postnl.nl/shipment/v2/status/barcode/` | `POSTNL_API_KEY` |
 | `gls` | gls.js | Public `gls-group.com/app/service/open/rest/EU/en/rstt001` | Aucune |
 | `dpd` | dpd.js | Public `tracking.dpd.fr` + fallback `tracking.dpd.de` | Aucune |
-| `mondialrelay` | mondialrelay.js | `mondialrelay.fr/api/package/{n}/tracking` | Aucune *(code postal requis)* |
+| `mondialrelay` | mondialrelay.js | SOAP `mondialrelay.fr/webservice/WebService.asmx` → `WSI2_TracerColis` | `MONDIALRELAY_ENSEIGNE` + `MONDIALRELAY_PRIVATE_KEY` *(compte marchand)* + code postal |
 | Autres | generic.js | Retourne `not_configured` + lien officiel | — |
 
 ### Auto-détection (`carriers/index.js` → `detectSlug()`)

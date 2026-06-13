@@ -14,7 +14,7 @@ const CARRIER_LIST = [
   { slug: 'laposte',       name: 'La Poste',           needs_key: 'LAPOSTE_API_KEY' },
   { slug: 'colissimo',     name: 'Colissimo',           needs_key: 'LAPOSTE_API_KEY' },
   { slug: 'chronopost',    name: 'Chronopost',          needs_key: 'LAPOSTE_API_KEY' },
-  { slug: 'mondialrelay',  name: 'Mondial Relay',       needs_key: null },
+  { slug: 'mondialrelay',  name: 'Mondial Relay',       needs_key: 'MONDIALRELAY_ENSEIGNE' },
   { slug: 'colisprive',    name: 'Colis Privé',         needs_key: null },
   { slug: 'dhl',           name: 'DHL',                 needs_key: 'DHL_API_KEY' },
   { slug: 'ups',           name: 'UPS',                 needs_key: 'UPS_CLIENT_ID' },

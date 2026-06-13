@@ -35,7 +35,7 @@ Application de suivi de colis multi-transporteurs, auto-hébergée, avec notific
 | PostNL | API officielle | `POSTNL_API_KEY` — gratuit sur [developer.postnl.nl](https://developer.postnl.nl) |
 | GLS | Endpoint public | Aucune clé |
 | DPD | Endpoint public | Aucune clé |
-| Mondial Relay | Endpoint interne | Aucune clé *(code postal destinataire requis)* |
+| Mondial Relay | API SOAP officielle | `MONDIALRELAY_ENSEIGNE` + `MONDIALRELAY_PRIVATE_KEY` *(compte marchand requis)* + code postal destinataire |
 | Colis Privé, Royal Mail, Hermes… | Lien vers site officiel | — |
 
 ---
