@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  parcel-tracker:
+    build: .
+    container_name: parcel-tracker
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    env_file:
+      - .env
+    volumes:
+      - parcel_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/app/data/parcels.db
+    labels:
+      # ── Traefik ──────────────────────────────────────
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # Router HTTP → redirect HTTPS
+      - "traefik.http.routers.parcel-http.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.parcel-http.entrypoints=web"
+      - "traefik.http.routers.parcel-http.middlewares=redirect-to-https"
+
+      # Router HTTPS
+      - "traefik.http.routers.parcel.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.parcel.entrypoints=websecure"
+      - "traefik.http.routers.parcel.tls=true"
+      - "traefik.http.routers.parcel.tls.certresolver=letsencrypt"
+
+      # Service
+      - "traefik.http.services.parcel.loadbalancer.server.port=3000"
+
+      # Middleware redirect HTTP→HTTPS (déclaré une fois, réutilisable)
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+volumes:
+  parcel_data:
+    driver: local
+
+networks:
+  traefik_proxy:
+    external: true
