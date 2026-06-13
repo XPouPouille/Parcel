@@ -30,6 +30,15 @@
   const loadingOverlay  = document.getElementById('loading-overlay');
   const themeToggle     = document.getElementById('theme-toggle');
   const refreshAllBtn   = document.getElementById('refresh-all-btn');
+  const configBtn       = document.getElementById('config-btn');
+  const configModal     = document.getElementById('config-modal');
+  const configModalClose= document.getElementById('config-modal-close');
+  const configCancel    = document.getElementById('config-cancel');
+  const configSave      = document.getElementById('config-save');
+  const intervalValue   = document.getElementById('interval-value');
+  const intervalUnitLabel = document.getElementById('interval-unit-label');
+  const configPreview   = document.getElementById('config-preview');
+  const configError     = document.getElementById('config-error');
 
   // ── Status config ──────────────────────────────────────
   const STATUS_CONFIG = {
@@ -310,7 +319,12 @@
   // ── Modal close ────────────────────────────────────────
   modalClose.addEventListener('click', closeModal);
   modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (!configModal.classList.contains('hidden')) closeConfigModal();
+      else closeModal();
+    }
+  });
 
   // ── Theme ──────────────────────────────────────────────
   themeToggle.addEventListener('click', toggleTheme);
@@ -353,6 +367,109 @@
       });
     } catch { return iso; }
   }
+
+  // ── Config modal ───────────────────────────────────────
+  let currentUnit = 'minutes'; // 'minutes' | 'heures'
+
+  function openConfigModal() {
+    configError.classList.add('hidden');
+    api('/api/config').then(cfg => {
+      const totalMinutes = cfg.check_interval_minutes || 60;
+      if (totalMinutes >= 60 && totalMinutes % 60 === 0) {
+        currentUnit = 'heures';
+        intervalValue.value = totalMinutes / 60;
+      } else {
+        currentUnit = 'minutes';
+        intervalValue.value = totalMinutes;
+      }
+      document.getElementById(currentUnit === 'minutes' ? 'unit-minutes' : 'unit-heures').checked = true;
+      intervalUnitLabel.textContent = currentUnit;
+      updatePreview();
+    }).catch(() => {
+      intervalValue.value = 60;
+      document.getElementById('unit-minutes').checked = true;
+      intervalUnitLabel.textContent = 'minutes';
+      updatePreview();
+    });
+    configModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => intervalValue.focus(), 100);
+  }
+
+  function closeConfigModal() {
+    configModal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  function updatePreview() {
+    const raw = parseInt(intervalValue.value, 10);
+    if (isNaN(raw) || raw < 1) { configPreview.textContent = ''; return; }
+    const minutes = currentUnit === 'heures' ? raw * 60 : raw;
+    if (minutes < 1 || minutes > 10080) { configPreview.textContent = ''; return; }
+    let txt = `Vérification automatique toutes les `;
+    if (minutes >= 60 && minutes % 60 === 0) {
+      const h = minutes / 60;
+      txt += `${h} heure${h > 1 ? 's' : ''}`;
+    } else {
+      txt += `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    }
+    txt += `.`;
+    configPreview.textContent = txt;
+  }
+
+  document.querySelectorAll('input[name="interval-unit"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const prev = parseInt(intervalValue.value, 10);
+      currentUnit = radio.value;
+      intervalUnitLabel.textContent = currentUnit;
+      // Convert existing value
+      if (!isNaN(prev) && prev > 0) {
+        if (currentUnit === 'heures') {
+          intervalValue.value = Math.max(1, Math.round(prev / 60));
+        } else {
+          intervalValue.value = Math.min(10080, prev * 60);
+        }
+      }
+      updatePreview();
+    });
+  });
+
+  intervalValue.addEventListener('input', updatePreview);
+
+  configSave.addEventListener('click', async () => {
+    const raw = parseInt(intervalValue.value, 10);
+    if (isNaN(raw) || raw < 1) {
+      configError.textContent = 'Entrez une valeur valide supérieure à 0.';
+      configError.classList.remove('hidden');
+      return;
+    }
+    const minutes = currentUnit === 'heures' ? raw * 60 : raw;
+    if (minutes < 1 || minutes > 10080) {
+      configError.textContent = 'Intervalle entre 1 minute et 7 jours (10 080 min).';
+      configError.classList.remove('hidden');
+      return;
+    }
+    configError.classList.add('hidden');
+    configSave.disabled = true;
+    try {
+      await api('/api/config', {
+        method: 'PUT',
+        body: JSON.stringify({ check_interval_minutes: minutes }),
+      });
+      closeConfigModal();
+      loadStatus();
+    } catch (err) {
+      configError.textContent = err.message;
+      configError.classList.remove('hidden');
+    } finally {
+      configSave.disabled = false;
+    }
+  });
+
+  configBtn.addEventListener('click', openConfigModal);
+  configModalClose.addEventListener('click', closeConfigModal);
+  configCancel.addEventListener('click', closeConfigModal);
+  configModal.addEventListener('click', e => { if (e.target === configModal) closeConfigModal(); });
 
   // ── Auto-refresh every 5 minutes ──────────────────────
   setInterval(loadPackages, 5 * 60 * 1000);

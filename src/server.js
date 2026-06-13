@@ -2,10 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getDb } = require('./database');
+const { getDb, getSetting, setSetting } = require('./database');
 const { addAndTrack, getTrackingInfo } = require('./tracker');
 const { initBot, notifyNew } = require('./telegram');
-const { startScheduler, checkAllPackages } = require('./scheduler');
+const { startScheduler, reloadScheduler, checkAllPackages, getCurrentInterval } = require('./scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -156,9 +156,34 @@ app.get('/api/status', (req, res) => {
   res.json({
     ...counts,
     last_check: new Date().toISOString(),
-    check_interval_minutes: parseInt(process.env.CHECK_INTERVAL_MINUTES || '60'),
+    check_interval_minutes: getCurrentInterval(),
     telegram: !!process.env.TELEGRAM_BOT_TOKEN,
     tracking_api: !!process.env.TRACK17_API_KEY,
+  });
+});
+
+// GET config
+app.get('/api/config', (req, res) => {
+  res.json({
+    check_interval_minutes: parseInt(getSetting('check_interval_minutes') || '60', 10),
+  });
+});
+
+// PUT config
+app.put('/api/config', (req, res) => {
+  const { check_interval_minutes } = req.body;
+
+  if (check_interval_minutes !== undefined) {
+    const val = parseInt(check_interval_minutes, 10);
+    if (isNaN(val) || val < 1 || val > 10080) {
+      return res.status(400).json({ error: 'Intervalle invalide (1 min — 7 jours)' });
+    }
+    setSetting('check_interval_minutes', val);
+    reloadScheduler();
+  }
+
+  res.json({
+    check_interval_minutes: parseInt(getSetting('check_interval_minutes') || '60', 10),
   });
 });
 

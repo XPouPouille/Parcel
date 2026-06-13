@@ -531,6 +531,80 @@ body {
 /* ── Refresh animation ── */
 .spinning { animation: spin 1s linear infinite; }
 
+/* ── Config modal ── */
+.modal-sm { max-width: 400px; }
+
+.config-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.config-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.config-unit-row {
+  display: flex;
+  gap: 12px;
+}
+
+.config-unit-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition);
+  flex: 1;
+  justify-content: center;
+}
+
+.config-unit-label:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(0,113,227,0.08);
+  color: var(--accent);
+}
+
+.config-unit-label input[type="radio"] { display: none; }
+
+.config-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.config-input-row .input { flex: 1; font-size: 18px; font-weight: 600; text-align: center; }
+
+.config-unit-suffix {
+  font-size: 14px;
+  color: var(--text-muted);
+  min-width: 60px;
+}
+
+.config-preview {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+  min-height: 34px;
+  line-height: 1.5;
+}
+
+.config-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* ── Helpers ── */
 .hidden { display: none !important; }
 

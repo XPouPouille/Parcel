@@ -2,26 +2,52 @@ const cron = require('node-cron');
 const { getTrackingInfo } = require('./tracker');
 const { notify } = require('./telegram');
 
-const INTERVAL = parseInt(process.env.CHECK_INTERVAL_MINUTES || '60', 10);
+let currentTask = null;
+let currentInterval = null;
+let dbRef = null;
 
-// Build cron expression from minutes interval
 function buildCron(minutes) {
-  if (minutes < 60) return `*/${minutes} * * * *`;
-  const hours = Math.floor(minutes / 60);
-  return `0 */${hours} * * *`;
+  const m = Math.max(1, Math.floor(minutes));
+  if (m < 60) return `*/${m} * * * *`;
+  const hours = Math.floor(m / 60);
+  return `0 */${Math.max(1, hours)} * * *`;
+}
+
+function getIntervalFromDb() {
+  const { getSetting } = require('./database');
+  return parseInt(getSetting('check_interval_minutes') || '60', 10);
 }
 
 function startScheduler(db) {
-  const cronExpr = buildCron(INTERVAL);
-  console.log(`[Scheduler] Vérification toutes les ${INTERVAL} min (cron: ${cronExpr})`);
+  dbRef = db;
+  const minutes = getIntervalFromDb();
+  scheduleWith(minutes);
+}
 
-  cron.schedule(cronExpr, () => checkAllPackages(db));
+function scheduleWith(minutes) {
+  if (currentTask) {
+    currentTask.stop();
+    currentTask = null;
+  }
+  currentInterval = minutes;
+  const cronExpr = buildCron(minutes);
+  console.log(`[Scheduler] Vérification toutes les ${minutes} min (cron: ${cronExpr})`);
+  currentTask = cron.schedule(cronExpr, () => checkAllPackages(dbRef));
+}
+
+// Called by the config API after saving a new interval
+function reloadScheduler() {
+  const minutes = getIntervalFromDb();
+  if (minutes !== currentInterval) {
+    console.log(`[Scheduler] Rechargement — nouvel intervalle: ${minutes} min`);
+    scheduleWith(minutes);
+  }
 }
 
 async function checkAllPackages(db) {
   console.log('[Scheduler] Vérification des colis en cours...');
 
-  const packages = db.prepare(`
+  const packages = (db || dbRef).prepare(`
     SELECT * FROM packages
     WHERE status NOT IN ('delivered', 'expired', 'not_found')
     ORDER BY created_at ASC
@@ -31,8 +57,7 @@ async function checkAllPackages(db) {
 
   for (const pkg of packages) {
     try {
-      await checkPackage(db, pkg);
-      // Avoid rate limiting
+      await checkPackage(db || dbRef, pkg);
       await new Promise(r => setTimeout(r, 500));
     } catch (err) {
       console.error(`[Scheduler] Erreur colis ${pkg.tracking_number}:`, err.message);
@@ -47,7 +72,6 @@ async function checkPackage(db, pkg) {
   const oldStatus = pkg.status;
 
   if (info.status === oldStatus && info.last_event === pkg.last_event) {
-    // No change — just update last_checked
     db.prepare('UPDATE packages SET last_checked = CURRENT_TIMESTAMP WHERE id = ?').run(pkg.id);
     return;
   }
@@ -78,10 +102,11 @@ async function checkPackage(db, pkg) {
 
   console.log(`[Scheduler] ${pkg.tracking_number}: ${oldStatus} → ${info.status}`);
 
-  // Notify only if meaningful status change
   if (oldStatus !== info.status) {
     await notify({ ...pkg, ...info }, oldStatus);
   }
 }
 
-module.exports = { startScheduler, checkAllPackages, checkPackage };
+function getCurrentInterval() { return currentInterval; }
+
+module.exports = { startScheduler, reloadScheduler, checkAllPackages, checkPackage, getCurrentInterval };

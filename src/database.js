@@ -37,7 +37,25 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_status ON packages(status);
     CREATE INDEX IF NOT EXISTS idx_tracking ON packages(tracking_number);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
+
+  // Seed default interval from env (only if not already set by user)
+  const defaultInterval = process.env.CHECK_INTERVAL_MINUTES || '60';
+  db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('check_interval_minutes', ?)`).run(defaultInterval);
 }
 
-module.exports = { getDb };
+function getSetting(key) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(key, String(value));
+}
+
+module.exports = { getDb, getSetting, setSetting };
