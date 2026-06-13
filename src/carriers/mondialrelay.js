@@ -74,19 +74,15 @@ async function track(trackingNumber, postalCode) {
   const privateKey = process.env.MONDIALRELAY_PRIVATE_KEY;
 
   if (!enseigne || !privateKey) {
+    const trackingUrl = postalCode
+      ? `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${encodeURIComponent(trackingNumber)}&codePostal=${encodeURIComponent(postalCode)}`
+      : `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${encodeURIComponent(trackingNumber)}`;
     return {
       carrier: 'Mondial Relay',
       carrier_code: 'mondialrelay',
       status: 'not_configured',
-      error: [
-        'Mondial Relay nécessite un compte marchand.',
-        'Renseignez MONDIALRELAY_ENSEIGNE et MONDIALRELAY_PRIVATE_KEY dans .env',
-        '(fournis par Mondial Relay sur mondialrelay.fr/solutions-professionnels)',
-        '',
-        postalCode
-          ? `Suivi manuel : https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${encodeURIComponent(trackingNumber)}&codePostal=${encodeURIComponent(postalCode)}`
-          : `Suivi manuel : https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${encodeURIComponent(trackingNumber)}`,
-      ].join('\n'),
+      last_event: trackingUrl,
+      error: `Mondial Relay nécessite un compte marchand (MONDIALRELAY_ENSEIGNE + MONDIALRELAY_PRIVATE_KEY dans .env).\nSuivi manuel : ${trackingUrl}`,
       events: [],
     };
   }

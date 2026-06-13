@@ -204,9 +204,12 @@
 
     const events = Array.isArray(p.events) ? p.events : [];
 
-    const errorMsg = p._error || (p.status === 'not_configured' ? 'Intégration non configurée.' : null);
-    if (errorMsg) {
-      modalTimeline.innerHTML = `<div class="timeline-empty config-note">⚙️ ${escHtml(errorMsg)}</div>`;
+    if (p.status === 'not_configured') {
+      const url = (p.last_event && p.last_event.startsWith('http')) ? p.last_event : null;
+      const linkHtml = url
+        ? `<br><a href="${escHtml(url)}" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all;">🔗 Suivre sur mondialrelay.fr</a>`
+        : '';
+      modalTimeline.innerHTML = `<div class="timeline-empty config-note">⚙️ Mondial Relay nécessite un compte marchand.<br>Renseignez <code>MONDIALRELAY_ENSEIGNE</code> et <code>MONDIALRELAY_PRIVATE_KEY</code> dans le fichier <code>.env</code>.${linkHtml}</div>`;
     } else if (!events.length) {
       modalTimeline.innerHTML = `<div class="timeline-empty">Aucun événement disponible pour le moment.</div>`;
     } else {
