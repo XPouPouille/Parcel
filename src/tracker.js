@@ -49,19 +49,22 @@ function getHeaders() {
 
 // carrierCode is optional — when provided, skips auto-detection
 async function registerTracking(trackingNumber, carrierCode) {
-  if (!API_KEY) throw new Error('TRACK17_API_KEY non configuré');
+  if (!API_KEY) throw new Error('TRACK17_API_KEY non configuré dans le fichier .env');
 
   const payload = { number: trackingNumber };
   if (carrierCode) payload.carrier = parseInt(carrierCode, 10);
 
-  const res = await axios.post(
-    `${API_BASE}/register`,
-    [payload],
-    { headers: getHeaders() }
-  );
+  let res;
+  try {
+    res = await axios.post(`${API_BASE}/register`, [payload], { headers: getHeaders() });
+  } catch (err) {
+    if (err.response?.status === 401) throw new Error('Clé API 17track invalide ou expirée (401) — vérifiez TRACK17_API_KEY dans .env');
+    throw err;
+  }
 
   const data = res.data;
-  if (data.code !== 0) throw new Error(`17track register error: ${data.message || data.code}`);
+  if (data.code === 401) throw new Error('Clé API 17track invalide ou expirée (401) — vérifiez TRACK17_API_KEY dans .env');
+  if (data.code !== 0) throw new Error(`17track register error ${data.code}: ${data.message || ''}`);
 
   const accepted = data.data?.accepted?.[0];
   const rejected = data.data?.rejected?.[0];
@@ -76,16 +79,19 @@ async function registerTracking(trackingNumber, carrierCode) {
 }
 
 async function getTrackingInfo(trackingNumber) {
-  if (!API_KEY) throw new Error('TRACK17_API_KEY non configuré');
+  if (!API_KEY) throw new Error('TRACK17_API_KEY non configuré dans le fichier .env');
 
-  const res = await axios.post(
-    `${API_BASE}/gettrackinfo`,
-    [{ number: trackingNumber }],
-    { headers: getHeaders() }
-  );
+  let res;
+  try {
+    res = await axios.post(`${API_BASE}/gettrackinfo`, [{ number: trackingNumber }], { headers: getHeaders() });
+  } catch (err) {
+    if (err.response?.status === 401) throw new Error('Clé API 17track invalide ou expirée (401) — vérifiez TRACK17_API_KEY dans .env');
+    throw err;
+  }
 
   const data = res.data;
-  if (data.code !== 0) throw new Error(`17track gettrackinfo error: ${data.message || data.code}`);
+  if (data.code === 401) throw new Error('Clé API 17track invalide ou expirée (401) — vérifiez TRACK17_API_KEY dans .env');
+  if (data.code !== 0) throw new Error(`17track gettrackinfo error ${data.code}: ${data.message || ''}`);
 
   const accepted = data.data?.accepted?.[0];
   if (!accepted) throw new Error('Numéro de suivi introuvable');
