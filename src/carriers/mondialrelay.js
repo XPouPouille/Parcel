@@ -22,12 +22,12 @@ function buildSoapEnvelope(enseigne, numExpedition, security) {
                xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <WSI2_TracerColis xmlns="http://www.mondialrelay.fr/webservice/">
+    <WSI2_TracingColisDetaille xmlns="http://www.mondialrelay.fr/webservice/">
       <Enseigne>${enseigne}</Enseigne>
-      <Num_Expedition>${numExpedition}</Num_Expedition>
+      <Expedition>${numExpedition}</Expedition>
       <Langue>FR</Langue>
       <Security>${security}</Security>
-    </WSI2_TracerColis>
+    </WSI2_TracingColisDetaille>
   </soap:Body>
 </soap:Envelope>`;
 }
@@ -37,9 +37,9 @@ function parseSoapResponse(xml) {
   const errorMatch = xml.match(/<STAT>(\d+)<\/STAT>/);
   const statCode = errorMatch ? errorMatch[1] : null;
 
-  // STAT 0 = OK, anything else = error
+  // STAT 0 = OK, 80/95 = numéro inconnu, anything else = error
   if (statCode && statCode !== '0') {
-    if (statCode === '80') return { status: 'not_found', events: [] }; // numéro inconnu
+    if (statCode === '80' || statCode === '95') return { status: 'not_found', events: [] };
     throw new Error(`Mondial Relay SOAP erreur STAT=${statCode}`);
   }
 
@@ -95,7 +95,7 @@ async function track(trackingNumber, postalCode) {
     res = await axios.post(WSDL, soap, {
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': '"http://www.mondialrelay.fr/webservice/WSI2_TracerColis"',
+        'SOAPAction': '"http://www.mondialrelay.fr/webservice/WSI2_TracingColisDetaille"',
       },
       validateStatus: null,
       timeout: 15000,
