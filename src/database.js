@@ -54,6 +54,19 @@ function initSchema() {
   // Seed default interval from env (only if not already set by user)
   const defaultInterval = process.env.CHECK_INTERVAL_MINUTES || '60';
   db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('check_interval_minutes', ?)`).run(defaultInterval);
+
+  // Apply any API keys saved via UI back into process.env
+  const API_KEYS = [
+    'LAPOSTE_API_KEY', 'DHL_API_KEY',
+    'UPS_CLIENT_ID', 'UPS_CLIENT_SECRET',
+    'FEDEX_CLIENT_ID', 'FEDEX_CLIENT_SECRET',
+    'USPS_USER_ID', 'POSTNL_API_KEY',
+    'MONDIALRELAY_ENSEIGNE', 'MONDIALRELAY_PRIVATE_KEY',
+  ];
+  for (const key of API_KEYS) {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(`apikey_${key}`);
+    if (row && row.value) process.env[key] = row.value;
+  }
 }
 
 function getSetting(key) {

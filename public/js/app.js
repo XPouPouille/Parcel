@@ -45,6 +45,8 @@
   const intervalUnitLabel = document.getElementById('interval-unit-label');
   const configPreview   = document.getElementById('config-preview');
   const configError     = document.getElementById('config-error');
+  const apiKeysList     = document.getElementById('api-keys-list');
+  const apikeysError    = document.getElementById('apikeys-error');
 
   // ── Status config ──────────────────────────────────────
   const STATUS_CONFIG = {
@@ -441,9 +443,23 @@
 
   // ── Config modal ───────────────────────────────────────
   let currentUnit = 'minutes'; // 'minutes' | 'heures'
+  let activeConfigTab = 'schedule';
+
+  function switchConfigTab(tab) {
+    activeConfigTab = tab;
+    document.querySelectorAll('.config-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.configTab === tab);
+    });
+    document.querySelectorAll('.config-tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === `config-tab-${tab}`);
+      panel.classList.toggle('hidden', panel.id !== `config-tab-${tab}`);
+    });
+    if (tab === 'apikeys') loadApiKeys();
+  }
 
   function openConfigModal() {
     configError.classList.add('hidden');
+    switchConfigTab('schedule');
     api('/api/config').then(cfg => {
       const totalMinutes = cfg.check_interval_minutes || 60;
       if (totalMinutes >= 60 && totalMinutes % 60 === 0) {
@@ -470,6 +486,60 @@
   function closeConfigModal() {
     configModal.classList.add('hidden');
     document.body.style.overflow = '';
+  }
+
+  // ── API keys tab ───────────────────────────────────────
+  let apiKeyDefs = [];
+
+  async function loadApiKeys() {
+    apiKeysList.innerHTML = '<p style="color:var(--text-muted);font-size:13px">Chargement...</p>';
+    apikeysError.classList.add('hidden');
+    try {
+      const data = await api('/api/keys');
+      apiKeyDefs = data.defs;
+      renderApiKeys(data.defs, data.values);
+    } catch (err) {
+      apiKeysList.innerHTML = '';
+      apikeysError.textContent = err.message;
+      apikeysError.classList.remove('hidden');
+    }
+  }
+
+  function renderApiKeys(defs, values) {
+    apiKeysList.innerHTML = defs.map(def => {
+      const val = values[def.key] || '';
+      const isSet = !!val;
+      return `
+        <div class="api-key-row">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="api-key-status ${isSet ? 'set' : ''}" title="${isSet ? 'Configuré' : 'Non configuré'}"></div>
+            <span class="api-key-label">${escHtml(def.label)}</span>
+          </div>
+          <div class="api-key-input-row">
+            <input
+              type="password"
+              class="input api-key-field"
+              data-key="${escHtml(def.key)}"
+              value="${escHtml(val)}"
+              placeholder="${isSet ? '••••••••' : 'Non configuré'}"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="button" class="btn btn-ghost btn-icon btn-toggle-key" title="Afficher / Masquer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          ${def.hint ? `<span class="api-key-hint">→ <a href="https://${escHtml(def.hint)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(def.hint)}</a></span>` : ''}
+        </div>`;
+    }).join('');
+
+    // Toggle visibility buttons
+    apiKeysList.querySelectorAll('.btn-toggle-key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = btn.previousElementSibling;
+        input.type = input.type === 'password' ? 'text' : 'password';
+      });
+    });
   }
 
   function updatePreview() {
@@ -508,33 +578,65 @@
   intervalValue.addEventListener('input', updatePreview);
 
   configSave.addEventListener('click', async () => {
-    const raw = parseInt(intervalValue.value, 10);
-    if (isNaN(raw) || raw < 1) {
-      configError.textContent = 'Entrez une valeur valide supérieure à 0.';
-      configError.classList.remove('hidden');
-      return;
-    }
-    const minutes = currentUnit === 'heures' ? raw * 60 : raw;
-    if (minutes < 1 || minutes > 10080) {
-      configError.textContent = 'Intervalle entre 1 minute et 7 jours (10 080 min).';
-      configError.classList.remove('hidden');
-      return;
-    }
-    configError.classList.add('hidden');
-    configSave.disabled = true;
-    try {
-      await api('/api/config', {
-        method: 'PUT',
-        body: JSON.stringify({ check_interval_minutes: minutes }),
+    if (activeConfigTab === 'schedule') {
+      const raw = parseInt(intervalValue.value, 10);
+      if (isNaN(raw) || raw < 1) {
+        configError.textContent = 'Entrez une valeur valide supérieure à 0.';
+        configError.classList.remove('hidden');
+        return;
+      }
+      const minutes = currentUnit === 'heures' ? raw * 60 : raw;
+      if (minutes < 1 || minutes > 10080) {
+        configError.textContent = 'Intervalle entre 1 minute et 7 jours (10 080 min).';
+        configError.classList.remove('hidden');
+        return;
+      }
+      configError.classList.add('hidden');
+      configSave.disabled = true;
+      try {
+        await api('/api/config', {
+          method: 'PUT',
+          body: JSON.stringify({ check_interval_minutes: minutes }),
+        });
+        closeConfigModal();
+        loadStatus();
+      } catch (err) {
+        configError.textContent = err.message;
+        configError.classList.remove('hidden');
+      } finally {
+        configSave.disabled = false;
+      }
+    } else {
+      // Save API keys
+      apikeysError.classList.add('hidden');
+      configSave.disabled = true;
+      const updates = {};
+      apiKeysList.querySelectorAll('.api-key-field').forEach(input => {
+        updates[input.dataset.key] = input.value.trim();
       });
-      closeConfigModal();
-      loadStatus();
-    } catch (err) {
-      configError.textContent = err.message;
-      configError.classList.remove('hidden');
-    } finally {
-      configSave.disabled = false;
+      try {
+        const data = await api('/api/keys', {
+          method: 'PUT',
+          body: JSON.stringify(updates),
+        });
+        // Re-render to reflect new state (dot color)
+        renderApiKeys(apiKeyDefs, data.values);
+        // Brief visual confirmation
+        configSave.textContent = '✓ Enregistré';
+        setTimeout(() => { configSave.textContent = 'Enregistrer'; }, 1500);
+        // Refresh carrier list (configured flags may have changed)
+        loadCarriers();
+      } catch (err) {
+        apikeysError.textContent = err.message;
+        apikeysError.classList.remove('hidden');
+      } finally {
+        configSave.disabled = false;
+      }
     }
+  });
+
+  document.querySelectorAll('.config-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchConfigTab(btn.dataset.configTab));
   });
 
   configBtn.addEventListener('click', openConfigModal);

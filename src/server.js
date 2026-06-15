@@ -178,6 +178,49 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// API key definitions exposed to the UI
+const API_KEY_DEFS = [
+  { key: 'LAPOSTE_API_KEY',         label: 'La Poste / Colissimo / Chronopost', hint: 'developer.laposte.fr' },
+  { key: 'DHL_API_KEY',             label: 'DHL / Deutsche Post',               hint: 'developer.dhl.com' },
+  { key: 'UPS_CLIENT_ID',           label: 'UPS — Client ID',                   hint: 'developer.ups.com' },
+  { key: 'UPS_CLIENT_SECRET',       label: 'UPS — Client Secret',               hint: 'developer.ups.com' },
+  { key: 'FEDEX_CLIENT_ID',         label: 'FedEx / TNT — Client ID',           hint: 'developer.fedex.com' },
+  { key: 'FEDEX_CLIENT_SECRET',     label: 'FedEx / TNT — Client Secret',       hint: 'developer.fedex.com' },
+  { key: 'USPS_USER_ID',            label: 'USPS — User ID',                    hint: 'registration.shippingapis.com' },
+  { key: 'POSTNL_API_KEY',          label: 'PostNL',                            hint: 'developer.postnl.nl' },
+  { key: 'MONDIALRELAY_ENSEIGNE',   label: 'Mondial Relay — Enseigne',          hint: 'mondialrelay.fr/solutions-professionnels' },
+  { key: 'MONDIALRELAY_PRIVATE_KEY',label: 'Mondial Relay — Clé privée',        hint: 'mondialrelay.fr/solutions-professionnels' },
+];
+
+// GET api keys (current values)
+app.get('/api/keys', (req, res) => {
+  const result = {};
+  for (const def of API_KEY_DEFS) {
+    result[def.key] = process.env[def.key] || '';
+  }
+  res.json({ defs: API_KEY_DEFS, values: result });
+});
+
+// PUT api keys (save to DB + apply immediately)
+app.put('/api/keys', (req, res) => {
+  const updates = req.body;
+  const validKeys = new Set(API_KEY_DEFS.map(d => d.key));
+  for (const [key, value] of Object.entries(updates)) {
+    if (!validKeys.has(key)) continue;
+    const v = (value || '').trim();
+    if (v) {
+      setSetting(`apikey_${key}`, v);
+      process.env[key] = v;
+    } else {
+      setSetting(`apikey_${key}`, '');
+      delete process.env[key];
+    }
+  }
+  const result = {};
+  for (const def of API_KEY_DEFS) result[def.key] = process.env[def.key] || '';
+  res.json({ values: result });
+});
+
 // GET config
 app.get('/api/config', (req, res) => {
   res.json({

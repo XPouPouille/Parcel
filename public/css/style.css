@@ -606,6 +606,84 @@ body {
 
 /* ── Config modal ── */
 .modal-sm { max-width: 400px; }
+.modal-config { max-width: 500px; }
+
+/* Config modal tabs */
+.config-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  gap: 4px;
+}
+.config-tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--transition);
+}
+.config-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.config-tab-panel { display: none; }
+.config-tab-panel.active { display: flex; }
+
+/* API keys section */
+.api-keys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.api-key-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.api-key-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.api-key-hint {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.api-key-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.api-key-input-row .input {
+  flex: 1;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.03em;
+}
+.btn-icon {
+  padding: 8px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.api-key-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.api-key-status.set { background: var(--success); }
 
 .config-body {
   padding: 16px 20px;

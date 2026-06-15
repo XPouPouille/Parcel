@@ -164,18 +164,24 @@
 
   <!-- Config modal -->
   <div id="config-modal" class="modal-overlay hidden">
-    <div class="modal modal-sm">
+    <div class="modal modal-config">
       <div class="modal-header">
         <div>
           <h2 class="modal-title">⚙️ Paramètres</h2>
-          <p class="modal-carrier">Fréquence de mise à jour automatique</p>
         </div>
         <button id="config-modal-close" class="btn btn-ghost btn-sm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
-      <div class="config-body">
+      <!-- Tabs inside config modal -->
+      <div class="config-tabs">
+        <button class="config-tab-btn active" data-config-tab="schedule">Planification</button>
+        <button class="config-tab-btn" data-config-tab="apikeys">Clés API</button>
+      </div>
+
+      <!-- Tab: Planification -->
+      <div id="config-tab-schedule" class="config-body config-tab-panel active">
         <p class="config-desc">Choisissez la fréquence à laquelle l'application vérifie le statut des colis en cours.</p>
 
         <div class="config-unit-row">
@@ -196,6 +202,15 @@
 
         <div id="config-preview" class="config-preview"></div>
         <div id="config-error" class="form-error hidden"></div>
+      </div>
+
+      <!-- Tab: Clés API -->
+      <div id="config-tab-apikeys" class="config-body config-tab-panel hidden">
+        <p class="config-desc">Clés d'API pour les transporteurs. Laissez vide pour désactiver. Les modifications prennent effet immédiatement.</p>
+        <div id="api-keys-list" class="api-keys-list">
+          <!-- Populated by JS -->
+        </div>
+        <div id="apikeys-error" class="form-error hidden"></div>
       </div>
 
       <div class="modal-footer config-footer">
