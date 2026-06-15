@@ -11,8 +11,8 @@ const crypto = require('crypto');
 
 const WSDL = 'https://www.mondialrelay.fr/webservice/WebService.asmx';
 
-function md5Security(enseigne, numExpedition, privateKey) {
-  const raw = (enseigne + numExpedition + privateKey).toUpperCase();
+function md5Security(enseigne, numExpedition, langue, privateKey) {
+  const raw = (enseigne + numExpedition + langue + privateKey).toUpperCase();
   return crypto.createHash('md5').update(raw).digest('hex').toUpperCase();
 }
 
@@ -87,7 +87,7 @@ async function track(trackingNumber, postalCode) {
     };
   }
 
-  const security = md5Security(enseigne, trackingNumber, privateKey);
+  const security = md5Security(enseigne, trackingNumber, 'FR', privateKey);
   const soap = buildSoapEnvelope(enseigne, trackingNumber, security);
 
   let res;
@@ -95,7 +95,7 @@ async function track(trackingNumber, postalCode) {
     res = await axios.post(WSDL, soap, {
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://www.mondialrelay.fr/webservice/WSI2_TracerColis',
+        'SOAPAction': '"http://www.mondialrelay.fr/webservice/WSI2_TracerColis"',
       },
       validateStatus: null,
       timeout: 15000,
